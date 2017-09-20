@@ -1,6 +1,8 @@
 #ifndef MAVLINK_TYPES_H_
 #define MAVLINK_TYPES_H_
-
+#ifdef __CC_ARM
+#pragma anon_unions
+#endif
 // Visual Studio versions before 2010 don't have stdint.h, so we just error out.
 #if (defined _MSC_VER) && (_MSC_VER < 1600)
 #error "The C-MAVLink implementation requires Visual Studio 2010 or greater"
@@ -9,7 +11,9 @@
 #include <stdint.h>
 
 // Macro to define packed structures
-#ifdef __GNUC__
+#ifdef __CC_ARM
+#define MAVPACKED( __Declaration__ ) __packed __Declaration__
+#elif __GNUC__
   #define MAVPACKED( __Declaration__ ) __Declaration__ __attribute__((packed))
 #else
   #define MAVPACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
@@ -50,6 +54,22 @@
  * and re-instanted on the receiving side using the
  * native type as well.
  */
+#ifdef __CC_ARM
+MAVPACKED(
+typedef struct param_union {
+    MAVPACKED(union {
+        float param_float;
+        int32_t param_int32;
+        uint32_t param_uint32;
+        int16_t param_int16;
+        uint16_t param_uint16;
+        int8_t param_int8;
+        uint8_t param_uint8;
+        uint8_t bytes[4];
+    });
+    uint8_t type;
+}) mavlink_param_union_t;
+#else
 MAVPACKED(
 typedef struct param_union {
 	union {
@@ -64,6 +84,7 @@ typedef struct param_union {
 	};
 	uint8_t type;
 }) mavlink_param_union_t;
+#endif
 
 
 /**
@@ -79,6 +100,29 @@ typedef struct param_union {
  * which should be the same as gcc on little-endian arm. When using shifts/masks the value will be treated as a 64 bit unsigned number,
  * and the bits pulled out using the shifts/masks.
 */
+#ifdef __CC_ARM
+MAVPACKED(
+typedef struct param_union_extended {
+    MAVPACKED(union {
+    MAVPACKED(struct {
+        uint8_t is_double:1;
+        uint8_t mavlink_type:7;
+        MAVPACKED(union {
+            char c;
+            uint8_t uint8;
+            int8_t int8;
+            uint16_t uint16;
+            int16_t int16;
+            uint32_t uint32;
+            int32_t int32;
+            float f;
+            uint8_t align[7];
+        });
+    });
+    uint8_t data[8];
+    });
+}) mavlink_param_union_double_t;
+#else
 MAVPACKED(
 typedef struct param_union_extended {
     union {
@@ -100,6 +144,7 @@ typedef struct param_union_extended {
     uint8_t data[8];
     };
 }) mavlink_param_union_double_t;
+#endif
 
 /**
  * This structure is required to make the mavlink_send_xxx convenience functions

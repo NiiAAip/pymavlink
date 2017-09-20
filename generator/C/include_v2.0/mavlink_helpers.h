@@ -245,8 +245,8 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t* msg, 
 	}
 
 	msg->checksum = crc_calculate(&buf[1], header_len-1);
-	crc_accumulate_buffer(&msg->checksum, _MAV_PAYLOAD(msg), msg->len);
-	crc_accumulate(crc_extra, &msg->checksum);
+	crc_accumulate_buffer((uint16_t *)&msg->checksum, _MAV_PAYLOAD(msg), msg->len);
+	crc_accumulate(crc_extra, (uint16_t *)&msg->checksum);
 	mavlink_ck_a(msg) = (uint8_t)(msg->checksum & 0xFF);
 	mavlink_ck_b(msg) = (uint8_t)(msg->checksum >> 8);
 
@@ -469,12 +469,12 @@ union __mavlink_bitfield {
 
 MAVLINK_HELPER void mavlink_start_checksum(mavlink_message_t* msg)
 {
-	crc_init(&msg->checksum);
+	crc_init((uint16_t *)&msg->checksum);
 }
 
 MAVLINK_HELPER void mavlink_update_checksum(mavlink_message_t* msg, uint8_t c)
 {
-	crc_accumulate(c, &msg->checksum);
+	crc_accumulate(c, (uint16_t *)&msg->checksum);
 }
 
 /*
